@@ -1,0 +1,150 @@
+#build for openwebrx runing on X86_64
+#code source : https://github.com/jketterl/openwebrx
+#dockerfile source code : https://github.com/d9394/openwebrx/blob/x86_64/docker/Dockerfiles/Dockerfile-x86_64
+
+FROM ubuntu:latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
+
+RUN apt-get update \
+  && apt-get install -y \
+    wget udev git cmake \
+#    g++ \
+#    libgmp-dev \
+    python3-numpy python3-mako python3-sphinx python3-lxml python3-yaml python3-pyqt5 python3-dbg  python3-distutils-extra python3 \
+    doxygen direwolf rtl-sdr airspy hackrf sox \
+    libfftw3-dev libudev-dev libitpp-dev libsndfile1-dev liblapacke-dev libasound2-dev libusb-1.0 \
+    libqwt-qt5-dev qtmultimedia5-dev libqt5serialport5-dev qttools5-dev libqt5opengl5-dev \
+    portaudio19-dev \
+    netcat vim \
+    graphviz swig libtool texinfo gfortran  asciidoctor asciidoc
+#    libcomedi-dev \
+#    libsdl1.2-dev \
+#    libgsl-dev \
+#    liblog4cpp5-dev \
+#    libzmq3-dev \
+#    gnuradio \
+#    gnuradio-dev
+#    libusb-1.0-0-dev \
+#    libusb-dev
+
+RUN wget http://www.sdrplay.com/software/SDRplay_RSP_API-Linux-2.13.1.run \
+  && chmod +x *.run \
+  && ./SDRplay_RSP_API-Linux-2.13.1.run --noexec --keep
+WORKDIR package
+RUN sed -i -n '1,4p;16,$p' install_lib.sh \
+  && sed -i 's/sudo / /g' install_lib.sh \
+  && ./install_lib.sh
+WORKDIR ../
+
+#RUN git clone git://git.osmocom.org/gr-osmosdr
+#WORKDIR gr-osmosdr
+#WORKDIR build
+#RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+#WORKDIR ../../
+
+RUN git clone https://github.com/pothosware/SoapySDR.git
+WORKDIR SoapySDR
+WORKDIR build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+WORKDIR ../../
+RUN rm -rf SoapySDR
+
+#RUN git clone https://github.com/pothosware/SoapyOsmo.git
+#WORKDIR SoapyOsmo
+#WORKDIR build
+#RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+#WORKDIR ../../
+
+RUN git clone https://github.com/pothosware/SoapySDRPlay.git
+WORKDIR SoapySDRPlay
+WORKDIR build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+WORKDIR ../../
+RUN rm -rf SoapySDRPlay
+
+# RUN git clone https://github.com/pothosware/SoapyRTLSDR.git
+# WORKDIR SoapyRTLSDR
+# WORKDIR build
+# RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+# WORKDIR ../../
+
+#RUN git clone https://github.com/pothosware/SoapyRemote.git
+#WORKDIR SoapyRemote
+#WORKDIR build
+#RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+#WORKDIR ../../
+
+RUN git clone https://github.com/rxseger/rx_tools
+WORKDIR rx_tools
+WORKDIR build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+WORKDIR ../../
+RUN rm -rf rx_tools
+
+RUN git clone https://github.com/jketterl/csdr.git -b 48khz_filter
+WORKDIR csdr
+RUN make && make install
+WORKDIR ../
+RUN rm -rf csdr
+
+#RUN git clone https://git.code.sf.net/p/itpp/git itpp
+#RUN git clone https://github.com/girror/itpp.git
+#WORKDIR itpp
+#WORKDIR build
+#RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install && make clean
+#WORKDIR ../../
+
+RUN git clone https://github.com/szechyjs/mbelib.git
+WORKDIR mbelib
+WORKDIR build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+WORKDIR ../../
+RUN rm -rf mbelib
+
+RUN git clone https://github.com/jketterl/digiham.git
+WORKDIR digiham
+WORKDIR build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+WORKDIR ../../
+RUN rm -rf digiham
+
+RUN git clone https://github.com/f4exb/dsd.git
+WORKDIR dsd
+WORKDIR build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+WORKDIR ../../
+RUN rm -rf dsd
+
+RUN wget http://physics.princeton.edu/pulsar/k1jt/wsjtx-2.1.0.tgz \
+  && tar xvfz wsjtx-2.1.0.tgz
+WORKDIR wsjtx-2.1.0
+WORKDIR build
+RUN apt-get update && apt-get install -y libtool texinfo gfortran qtmultimedia5-dev libqt5serialport5-dev qttools5-dev asciidoctor asciidoc
+RUN apt-get install -y libudev-dev
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release && make && make install
+WORKDIR ../../
+RUN rm -rf wsjtx-2.1.0
+
+#RUN git clone https://github.com/wb2osz/direwolf.git
+#WORKDIR direwolf
+#RUN git checkout 1.5
+#ADD ./direwolf-1.5.patch /
+#RUN patch -Np1 < /direwolf-1.5.patch
+#RUN apt-get install -y libbsd-dev
+#RUN make && make install
+#WORKDIR ../
+#RUN rm -rf direwolf
+
+RUN git clone https://github.com/hessu/aprs-symbols /opt/aprs-symbols
+
+RUN rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/jketterl/openwebrx.git
+WORKDIR /openwebrx
+VOLUME /config
+
+#ENTRYPOINT [ "/openwebrx/docker/scripts/run.sh" ]
+CMD [ "/openwebrx/docker/scripts/run.sh" ]
+EXPOSE 8073
